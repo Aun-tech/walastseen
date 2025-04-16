@@ -13,13 +13,15 @@
     h1 {
       color: #0275d8;
     }
+    p {
+      font-size: 18px;
+    }
     input {
       padding: 10px;
       width: 250px;
-      margin-top: 15px;
-      margin-bottom: 15px;
-      border-radius: 5px;
       border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-top: 20px;
     }
     button {
       padding: 10px 20px;
@@ -28,30 +30,23 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      margin-top: 20px;
     }
     button:hover {
       background-color: #025aa5;
-    }
-    .logout {
-      background-color: #d9534f;
-      margin-top: 30px;
-    }
-    .logout:hover {
-      background-color: #c9302c;
     }
   </style>
 </head>
 <body>
   <h1>Welcome to WaLastSeen Dashboard!</h1>
-  <p>Enter a WhatsApp number to track (for learning/testing):</p>
+  <p>This is your private dashboard. In future steps, we will show “last seen” tracking features here.</p>
 
-  <input type="text" id="whatsappNumber" placeholder="+923001234567" />
+  <input type="text" id="numberInput" placeholder="Enter WhatsApp number with +92" />
   <br>
-  <button onclick="saveNumber()">Track Number</button>
+  <button onclick="trackNumber()">Track Number</button>
 
-  <p id="statusMessage"></p>
-
-  <button class="logout" onclick="logout()">Logout</button>
+  <br><br>
+  <button onclick="logout()">Logout</button>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
@@ -73,7 +68,7 @@
 
     onAuthStateChanged(auth, user => {
       if (!user) {
-        window.location.href = "index.html";
+        window.location.href = "index.html"; // Not logged in
       }
     });
 
@@ -84,25 +79,30 @@
       });
     };
 
-    window.saveNumber = async function () {
-      const number = document.getElementById("whatsappNumber").value.trim();
+    window.trackNumber = async function() {
+      const number = document.getElementById("numberInput").value.trim();
       const user = auth.currentUser;
 
-      if (!number.startsWith("+") || number.length < 10) {
-        document.getElementById("statusMessage").innerText = "❌ Please enter a valid WhatsApp number with country code.";
+      if (!user) {
+        alert("User not logged in!");
+        return;
+      }
+
+      if (!number.startsWith("+92")) {
+        alert("Please enter a valid number with +92");
         return;
       }
 
       try {
         await setDoc(doc(db, "trackedNumbers", user.uid), {
           number: number,
-          userEmail: user.email,
-          addedAt: new Date().toISOString()
+          timestamp: new Date().toISOString()
         });
 
-        document.getElementById("statusMessage").innerText = "✅ Number saved successfully!";
+        alert("✅ Number saved successfully!");
       } catch (error) {
-        document.getElementById("statusMessage").innerText = "❌ Failed to save number: " + error.message;
+        console.error("❌ Error saving number:", error);
+        alert("Failed to save number. Check console for details.");
       }
     };
   </script>
