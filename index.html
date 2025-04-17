@@ -72,10 +72,8 @@
       const password = document.getElementById("password").value;
 
       signInWithEmailAndPassword(auth, email, password)
-        .then(userCredential => {
-          alert("Login successful!");
-          // Redirect to next page (coming soon)
-          window.location.href = "dashboard.html";
+        .then(() => {
+          window.location.href = "dashboard.html"; // Make sure this file name matches exactly
         })
         .catch(error => {
           alert("Login failed: " + error.message);
