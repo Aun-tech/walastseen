@@ -13,9 +13,6 @@
     h1 {
       color: #0275d8;
     }
-    p {
-      font-size: 18px;
-    }
     input {
       padding: 10px;
       width: 250px;
@@ -49,25 +46,11 @@
       background: #f4f4f4;
       border-radius: 5px;
     }
-    .history-item p {
-      margin: 5px 0;
-    }
-    #live-status {
-      margin-top: 40px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    #status-text {
-      font-size: 20px;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
-  <h1>Welcome to WaLastSeen Dashboard!</h1>
-  <p>This is your private dashboard. In future steps, we will show “last seen” tracking features here.</p>
+  <h1>Welcome to WaLastSeen Dashboard</h1>
+  <p>Track WhatsApp numbers and view their saved logs.</p>
 
   <input type="text" id="numberInput" placeholder="Enter WhatsApp number with +92" />
   <br>
@@ -78,11 +61,6 @@
   <div id="tracker-history">
     <h3>Tracker History:</h3>
     <div id="history-container"></div>
-  </div>
-
-  <div id="live-status">
-    <h2>Live WhatsApp Status:</h2>
-    <p id="status-text">Loading...</p>
   </div>
 
   <script type="module">
@@ -106,12 +84,13 @@
     onAuthStateChanged(auth, user => {
       if (!user) {
         window.location.href = "index.html";
+      } else {
+        loadTrackerHistory(user.uid);
       }
     });
 
     window.logout = function() {
       signOut(auth).then(() => {
-        alert("Logged out!");
         window.location.href = "index.html";
       });
     };
@@ -120,66 +99,40 @@
       const number = document.getElementById("numberInput").value.trim();
       const user = auth.currentUser;
 
-      if (!user) {
-        alert("User not logged in!");
-        return;
-      }
-
       if (!number.startsWith("+92")) {
-        alert("Please enter a valid number with +92");
+        alert("Please enter number with +92");
         return;
       }
 
       try {
-        await setDoc(doc(db, "trackedNumbers", user.uid), {
+        await setDoc(doc(db, "trackedNumbers", `${user.uid}-${number}`), {
           number: number,
           timestamp: new Date().toISOString()
         });
 
-        alert("✅ Number saved successfully!");
-        loadTrackerHistory();
-      } catch (error) {
-        console.error("❌ Error saving number:", error);
-        alert("Failed to save number. Check console for details.");
+        alert("Number saved!");
+        loadTrackerHistory(user.uid);
+      } catch (e) {
+        alert("Error saving number.");
+        console.error(e);
       }
     };
 
-    async function loadTrackerHistory() {
-      const user = auth.currentUser;
-      if (!user) return;
-
+    async function loadTrackerHistory(uid) {
       const historyContainer = document.getElementById("history-container");
       historyContainer.innerHTML = "";
 
       const snapshot = await getDocs(collection(db, "trackedNumbers"));
-      snapshot.forEach(doc => {
-        const historyData = doc.data();
-        const historyItem = document.createElement("div");
-        historyItem.classList.add("history-item");
-        historyItem.innerHTML = `
-          <p><strong>Number:</strong> ${historyData.number}</p>
-          <p><strong>Last Seen:</strong> ${historyData.timestamp}</p>
-        `;
-        historyContainer.appendChild(historyItem);
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (docSnap.id.startsWith(uid)) {
+          const div = document.createElement("div");
+          div.className = "history-item";
+          div.innerHTML = `<p><strong>Number:</strong> ${data.number}</p><p><strong>Saved:</strong> ${data.timestamp}</p>`;
+          historyContainer.appendChild(div);
+        }
       });
     }
-
-    window.onload = loadTrackerHistory;
-  </script>
-
-  <script>
-    async function loadLiveStatus() {
-      try {
-        const res = await fetch("status.txt?" + new Date().getTime());
-        const text = await res.text();
-        document.getElementById("status-text").innerText = text.trim();
-      } catch (err) {
-        document.getElementById("status-text").innerText = "⚠️ Unable to load status.";
-      }
-    }
-
-    setInterval(loadLiveStatus, 5000);
-    loadLiveStatus();
   </script>
 </body>
 </html>
