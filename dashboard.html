@@ -35,6 +35,23 @@
     button:hover {
       background-color: #025aa5;
     }
+    #tracker-history {
+      margin-top: 40px;
+      text-align: left;
+      width: 80%;
+      margin: 0 auto;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    .history-item {
+      margin: 10px 0;
+      padding: 10px;
+      background: #f4f4f4;
+      border-radius: 5px;
+    }
+    .history-item p {
+      margin: 5px 0;
+    }
   </style>
 </head>
 <body>
@@ -48,10 +65,18 @@
   <br><br>
   <button onclick="logout()">Logout</button>
 
+  <!-- Tracker History Section -->
+  <div id="tracker-history">
+    <h3>Tracker History:</h3>
+    <div id="history-container">
+      <!-- History will be dynamically added here -->
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
@@ -100,11 +125,35 @@
         });
 
         alert("✅ Number saved successfully!");
+        loadTrackerHistory();  // Refresh history after tracking new number
       } catch (error) {
         console.error("❌ Error saving number:", error);
         alert("Failed to save number. Check console for details.");
       }
     };
+
+    async function loadTrackerHistory() {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      const historyContainer = document.getElementById("history-container");
+      historyContainer.innerHTML = "";  // Clear existing content
+
+      const snapshot = await getDocs(collection(db, "trackedNumbers"));
+      snapshot.forEach(doc => {
+        const historyData = doc.data();
+        const historyItem = document.createElement("div");
+        historyItem.classList.add("history-item");
+        historyItem.innerHTML = `
+          <p><strong>Number:</strong> ${historyData.number}</p>
+          <p><strong>Last Seen:</strong> ${historyData.timestamp}</p>
+        `;
+        historyContainer.appendChild(historyItem);
+      });
+    }
+
+    // Load history when page is loaded
+    window.onload = loadTrackerHistory;
   </script>
 </body>
 </html>
