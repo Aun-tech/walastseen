@@ -52,6 +52,17 @@
     .history-item p {
       margin: 5px 0;
     }
+    #live-status {
+      margin-top: 40px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    #status-text {
+      font-size: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -61,16 +72,17 @@
   <input type="text" id="numberInput" placeholder="Enter WhatsApp number with +92" />
   <br>
   <button onclick="trackNumber()">Track Number</button>
-
   <br><br>
   <button onclick="logout()">Logout</button>
 
-  <!-- Tracker History Section -->
   <div id="tracker-history">
     <h3>Tracker History:</h3>
-    <div id="history-container">
-      <!-- History will be dynamically added here -->
-    </div>
+    <div id="history-container"></div>
+  </div>
+
+  <div id="live-status">
+    <h2>Live WhatsApp Status:</h2>
+    <p id="status-text">Loading...</p>
   </div>
 
   <script type="module">
@@ -93,7 +105,7 @@
 
     onAuthStateChanged(auth, user => {
       if (!user) {
-        window.location.href = "index.html"; // Not logged in
+        window.location.href = "index.html";
       }
     });
 
@@ -125,7 +137,7 @@
         });
 
         alert("✅ Number saved successfully!");
-        loadTrackerHistory();  // Refresh history after tracking new number
+        loadTrackerHistory();
       } catch (error) {
         console.error("❌ Error saving number:", error);
         alert("Failed to save number. Check console for details.");
@@ -137,7 +149,7 @@
       if (!user) return;
 
       const historyContainer = document.getElementById("history-container");
-      historyContainer.innerHTML = "";  // Clear existing content
+      historyContainer.innerHTML = "";
 
       const snapshot = await getDocs(collection(db, "trackedNumbers"));
       snapshot.forEach(doc => {
@@ -152,8 +164,22 @@
       });
     }
 
-    // Load history when page is loaded
     window.onload = loadTrackerHistory;
+  </script>
+
+  <script>
+    async function loadLiveStatus() {
+      try {
+        const res = await fetch("status.txt?" + new Date().getTime());
+        const text = await res.text();
+        document.getElementById("status-text").innerText = text.trim();
+      } catch (err) {
+        document.getElementById("status-text").innerText = "⚠️ Unable to load status.";
+      }
+    }
+
+    setInterval(loadLiveStatus, 5000);
+    loadLiveStatus();
   </script>
 </body>
 </html>
