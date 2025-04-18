@@ -2,71 +2,62 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard - WaLastSeen</title>
+  <title>WaLastSeen - Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #e9f0f7;
+      background-color: #f6f8fa;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .status-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      margin-bottom: 20px;
+      width: 300px;
+    }
+    h2 {
+      margin-bottom: 10px;
       text-align: center;
-      padding: 40px;
     }
-    h1 {
-      color: #0275d8;
+    .status {
+      margin-top: 10px;
+      font-size: 18px;
     }
-    input {
-      padding: 10px;
-      width: 250px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      margin-top: 20px;
+    .online {
+      color: green;
     }
-    button {
-      padding: 10px 20px;
-      background-color: #0275d8;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    button:hover {
-      background-color: #025aa5;
-    }
-    #tracker-history {
-      margin-top: 40px;
-      text-align: left;
-      width: 80%;
-      margin: 0 auto;
-      border-top: 1px solid #ccc;
-      padding-top: 20px;
-    }
-    .history-item {
-      margin: 10px 0;
-      padding: 10px;
-      background: #f4f4f4;
-      border-radius: 5px;
+    .offline {
+      color: red;
     }
   </style>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
 </head>
 <body>
-  <h1>Welcome to WaLastSeen Dashboard</h1>
-  <p>Track WhatsApp numbers and view their saved logs.</p>
-
-  <input type="text" id="numberInput" placeholder="Enter WhatsApp number with +92" />
-  <br>
-  <button onclick="trackNumber()">Track Number</button>
-  <br><br>
-  <button onclick="logout()">Logout</button>
-
-  <div id="tracker-history">
-    <h3>Tracker History:</h3>
-    <div id="history-container"></div>
+  <h2>Welcome to WaLastSeen</h2>
+  <div class="status-box" id="contact1-status">
+    <h3>Contact 1: +19048464390</h3>
+    <div id="contact1-status-text" class="status">Loading...</div>
   </div>
-
+  <div class="status-box" id="contact2-status">
+    <h3>Contact 2: +923440070803</h3>
+    <div id="contact2-status-text" class="status">Loading...</div>
+  </div>
+  
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
@@ -78,61 +69,34 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
-    onAuthStateChanged(auth, user => {
+    // Check user authentication
+    auth.onAuthStateChanged(user => {
       if (!user) {
-        window.location.href = "index.html";
-      } else {
-        loadTrackerHistory(user.uid);
+        window.location.href = "index.html"; // Redirect to login if not authenticated
       }
     });
 
-    window.logout = function() {
-      signOut(auth).then(() => {
-        window.location.href = "index.html";
-      });
-    };
+    // Function to fetch contact status from Firestore
+    async function fetchStatus(contactId, statusElementId) {
+      const docRef = doc(db, "contactsStatus", contactId);
+      const docSnap = await getDoc(docRef);
 
-    window.trackNumber = async function() {
-      const number = document.getElementById("numberInput").value.trim();
-      const user = auth.currentUser;
-
-      if (!number.startsWith("+92")) {
-        alert("Please enter number with +92");
-        return;
+      if (docSnap.exists()) {
+        const status = docSnap.data().status;
+        const statusElement = document.getElementById(statusElementId);
+        statusElement.innerHTML = `Status: <span class="${status.toLowerCase()}">${status}</span>`;
+      } else {
+        const statusElement = document.getElementById(statusElementId);
+        statusElement.innerHTML = "No data available.";
       }
-
-      try {
-        await setDoc(doc(db, "trackedNumbers", `${user.uid}-${number}`), {
-          number: number,
-          timestamp: new Date().toISOString()
-        });
-
-        alert("Number saved!");
-        loadTrackerHistory(user.uid);
-      } catch (e) {
-        alert("Error saving number.");
-        console.error(e);
-      }
-    };
-
-    async function loadTrackerHistory(uid) {
-      const historyContainer = document.getElementById("history-container");
-      historyContainer.innerHTML = "";
-
-      const snapshot = await getDocs(collection(db, "trackedNumbers"));
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        if (docSnap.id.startsWith(uid)) {
-          const div = document.createElement("div");
-          div.className = "history-item";
-          div.innerHTML = `<p><strong>Number:</strong> ${data.number}</p><p><strong>Saved:</strong> ${data.timestamp}</p>`;
-          historyContainer.appendChild(div);
-        }
-      });
     }
+
+    // Fetch status for both contacts
+    fetchStatus("+19048464390", "contact1-status-text");
+    fetchStatus("+923440070803", "contact2-status-text");
   </script>
 </body>
 </html>
