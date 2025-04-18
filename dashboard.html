@@ -1,44 +1,115 @@
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+<!DOCTYPE html>
+<html lang="en">
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-    authDomain: "walastseen.firebaseapp.com",
-    projectId: "walastseen",
-    storageBucket: "walastseen.appspot.com",
-    messagingSenderId: "80496023280",
-    appId: "1:80496023280:web:3bea7627c6dcfcece59435"
-  };
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaLastSeen - Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f6f8fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+        .dashboard-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
 
-  // Function to get contact status
-  async function getContactStatus(contact) {
-    const docRef = doc(db, "contactsStatus", contact);
-    const docSnap = await getDoc(docRef);
+        h2 {
+            margin-bottom: 20px;
+        }
 
-    if (docSnap.exists()) {
-      const status = docSnap.data().status;
-      return status;
-    } else {
-      console.log("No such document!");
-      return "Error fetching status";
-    }
-  }
+        .contact {
+            margin-bottom: 20px;
+        }
 
-  // Display status for contacts
-  async function displayStatus() {
-    const contacts = ["+19048464390", "+923440070803"];
+        .contact h3 {
+            font-size: 20px;
+        }
 
-    for (let contact of contacts) {
-      const status = await getContactStatus(contact);
-      const contactElement = document.getElementById(contact);
-      contactElement.innerText = `Status: ${status}`;
-    }
-  }
+        .status {
+            font-size: 18px;
+            color: #333;
+            margin-top: 5px;
+        }
+    </style>
+</head>
 
-  // Call the function to display the statuses
-  window.onload = displayStatus;
-</script>
+<body>
+    <div class="dashboard-box">
+        <h2>Welcome to WaLastSeen</h2>
+
+        <div class="contact">
+            <h3>Contact 1: +19048464390</h3>
+            <p class="status" id="contact1-status">Loading...</p>
+        </div>
+
+        <div class="contact">
+            <h3>Contact 2: +923440070803</h3>
+            <p class="status" id="contact2-status">Loading...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase App and Firestore Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+            authDomain: "walastseen.firebaseapp.com",
+            projectId: "walastseen",
+            storageBucket: "walastseen.appspot.com",
+            messagingSenderId: "80496023280",
+            appId: "1:80496023280:web:3bea7627c6dcfcece59435"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Function to fetch status of both contacts
+        const contact1Ref = doc(db, "contactsStatus", "+19048464390");
+        const contact2Ref = doc(db, "contactsStatus", "+923440070803");
+
+        const fetchContactStatus = async () => {
+            try {
+                const contact1Doc = await getDoc(contact1Ref);
+                const contact2Doc = await getDoc(contact2Ref);
+
+                if (contact1Doc.exists()) {
+                    document.getElementById("contact1-status").innerText = "Status: " + contact1Doc.data().status;
+                } else {
+                    document.getElementById("contact1-status").innerText = "Error fetching status.";
+                }
+
+                if (contact2Doc.exists()) {
+                    document.getElementById("contact2-status").innerText = "Status: " + contact2Doc.data().status;
+                } else {
+                    document.getElementById("contact2-status").innerText = "Error fetching status.";
+                }
+            } catch (error) {
+                console.error("Error fetching status: ", error);
+                document.getElementById("contact1-status").innerText = "Error fetching status.";
+                document.getElementById("contact2-status").innerText = "Error fetching status.";
+            }
+        };
+
+        // Call the function to fetch and display status
+        fetchContactStatus();
+    </script>
+</body>
+
+</html>
