@@ -1,79 +1,44 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Dashboard - WaLastSeen</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f6f8fa;
-      padding: 20px;
-    }
-    h2 {
-      text-align: center;
-    }
-    .contact {
-      background: #fff;
-      padding: 15px;
-      margin: 10px auto;
-      max-width: 400px;
-      border-radius: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    .status {
-      font-weight: bold;
-    }
-    .online {
-      color: green;
-    }
-    .offline {
-      color: red;
-    }
-  </style>
-</head>
-<body>
-  <h2>Welcome to WaLastSeen</h2>
-  <div class="contact">
-    <div>Contact 1: +19048464390</div>
-    <div>Status: <span id="status1" class="status">Loading...</span></div>
-  </div>
-  <div class="contact">
-    <div>Contact 2: +923440070803</div>
-    <div>Status: <span id="status2" class="status">Loading...</span></div>
-  </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+    authDomain: "walastseen.firebaseapp.com",
+    projectId: "walastseen",
+    storageBucket: "walastseen.appspot.com",
+    messagingSenderId: "80496023280",
+    appId: "1:80496023280:web:3bea7627c6dcfcece59435"
+  };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-      authDomain: "walastseen.firebaseapp.com",
-      projectId: "walastseen",
-      storageBucket: "walastseen.appspot.com",
-      messagingSenderId: "80496023280",
-      appId: "1:80496023280:web:3bea7627c6dcfcece59435"
-    };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  // Function to get contact status
+  async function getContactStatus(contact) {
+    const docRef = doc(db, "contactsStatus", contact);
+    const docSnap = await getDoc(docRef);
 
-    async function fetchStatus(number, elementId) {
-      const docRef = doc(db, "contactsStatus", number);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const status = docSnap.data().status;
-        const el = document.getElementById(elementId);
-        el.textContent = status;
-        el.className = "status " + (status === "online" ? "online" : "offline");
-      } else {
-        document.getElementById(elementId).textContent = "Not found";
-      }
+    if (docSnap.exists()) {
+      const status = docSnap.data().status;
+      return status;
+    } else {
+      console.log("No such document!");
+      return "Error fetching status";
     }
+  }
 
-    fetchStatus("+19048464390", "status1");
-    fetchStatus("+923440070803", "status2");
-  </script>
-</body>
-</html>
+  // Display status for contacts
+  async function displayStatus() {
+    const contacts = ["+19048464390", "+923440070803"];
+
+    for (let contact of contacts) {
+      const status = await getContactStatus(contact);
+      const contactElement = document.getElementById(contact);
+      contactElement.innerText = `Status: ${status}`;
+    }
+  }
+
+  // Call the function to display the statuses
+  window.onload = displayStatus;
+</script>
