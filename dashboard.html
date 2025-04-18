@@ -38,6 +38,10 @@
     .offline {
       color: red;
     }
+    #status1, #status2 {
+      font-size: 14px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -61,7 +65,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-    // Your Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
       authDomain: "walastseen.firebaseapp.com",
@@ -71,30 +74,30 @@
       appId: "1:80496023280:web:3bea7627c6dcfcece59435"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Function to fetch and display contact status from Firestore
     async function fetchStatus(contactId, statusElementId) {
       try {
-        const docRef = doc(db, "contactsStatus", contactId);
+        const docRef = doc(db, "contactsStatus", contactId);  // Fetch the status of a contact from Firestore
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
           const status = docSnap.data().status;
           const statusElement = document.getElementById(statusElementId);
-          statusElement.innerHTML = `Status: <span class="${status.toLowerCase()}">${status}</span>`;
+          statusElement.innerHTML = `Status: <span class="${status.toLowerCase()}">${status}</span>`;  // Update the status
         } else {
           const statusElement = document.getElementById(statusElementId);
-          statusElement.innerHTML = "No data available.";
+          statusElement.innerHTML = "No data available.";  // If no data found
         }
       } catch (error) {
         console.error("Error fetching status:", error);
+        const statusElement = document.getElementById(statusElementId);
+        statusElement.innerHTML = "Error fetching status.";  // Handle errors
       }
     }
 
-    // Fetch status for both contacts
+    // Fetch the status for the contacts
     fetchStatus("+19048464390", "status1");
     fetchStatus("+923440070803", "status2");
   </script>
