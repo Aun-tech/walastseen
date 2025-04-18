@@ -1,35 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WaLastSeen - Dashboard</title>
+  <title>Dashboard - WaLastSeen</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background-color: #f6f8fa;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .status-box {
-      background: #fff;
       padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      margin-bottom: 20px;
-      width: 300px;
     }
     h2 {
       text-align: center;
     }
     .contact {
-      margin: 10px 0;
+      background: #fff;
+      padding: 15px;
+      margin: 10px auto;
+      max-width: 400px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
-    .contact span {
+    .status {
       font-weight: bold;
     }
     .online {
@@ -38,27 +29,17 @@
     .offline {
       color: red;
     }
-    #status1, #status2 {
-      font-size: 14px;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
   <h2>Welcome to WaLastSeen</h2>
-
-  <div class="status-box">
-    <div class="contact">
-      <span>Contact 1:</span> +19048464390
-      <div id="status1">Loading...</div>
-    </div>
+  <div class="contact">
+    <div>Contact 1: +19048464390</div>
+    <div>Status: <span id="status1" class="status">Loading...</span></div>
   </div>
-
-  <div class="status-box">
-    <div class="contact">
-      <span>Contact 2:</span> +923440070803
-      <div id="status2">Loading...</div>
-    </div>
+  <div class="contact">
+    <div>Contact 2: +923440070803</div>
+    <div>Status: <span id="status2" class="status">Loading...</span></div>
   </div>
 
   <script type="module">
@@ -77,27 +58,20 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    async function fetchStatus(contactId, statusElementId) {
-      try {
-        const docRef = doc(db, "contactsStatus", contactId);  // Fetch the status of a contact from Firestore
-        const docSnap = await getDoc(docRef);
+    async function fetchStatus(number, elementId) {
+      const docRef = doc(db, "contactsStatus", number);
+      const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          const status = docSnap.data().status;
-          const statusElement = document.getElementById(statusElementId);
-          statusElement.innerHTML = `Status: <span class="${status.toLowerCase()}">${status}</span>`;  // Update the status
-        } else {
-          const statusElement = document.getElementById(statusElementId);
-          statusElement.innerHTML = "No data available.";  // If no data found
-        }
-      } catch (error) {
-        console.error("Error fetching status:", error);
-        const statusElement = document.getElementById(statusElementId);
-        statusElement.innerHTML = "Error fetching status.";  // Handle errors
+      if (docSnap.exists()) {
+        const status = docSnap.data().status;
+        const el = document.getElementById(elementId);
+        el.textContent = status;
+        el.className = "status " + (status === "online" ? "online" : "offline");
+      } else {
+        document.getElementById(elementId).textContent = "Not found";
       }
     }
 
-    // Fetch the status for the contacts
     fetchStatus("+19048464390", "status1");
     fetchStatus("+923440070803", "status2");
   </script>
