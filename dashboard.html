@@ -1,94 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WaLastSeen - Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f6f8fa;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .contact-status {
-      margin-top: 20px;
-    }
-    .contact-status div {
-      padding: 10px;
-      margin: 5px 0;
-      border-radius: 5px;
-      background-color: #fff;
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-    }
-    .online {
-      background-color: #d4edda;
-      color: #155724;
-    }
-    .offline {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaLastSeen - Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f6f8fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .dashboard-box {
+            background: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .contact-status {
+            margin-bottom: 20px;
+        }
+        .contact-status p {
+            font-size: 18px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Welcome to WaLastSeen</h1>
-  <div class="contact-status">
-    <div id="contact1">
-      <h3>Contact 1: +19048464390</h3>
-      <p>Status: <span id="status1">Loading...</span></p>
+    <div class="dashboard-box">
+        <h2>Welcome to WaLastSeen</h2>
+        <div id="contact1" class="contact-status">
+            <p>Contact 1: +19048464390</p>
+            <p>Status: <span id="status1">Loading...</span></p>
+        </div>
+        <div id="contact2" class="contact-status">
+            <p>Contact 2: +923440070803</p>
+            <p>Status: <span id="status2">Loading...</span></p>
+        </div>
     </div>
-    <div id="contact2">
-      <h3>Contact 2: +923440070803</h3>
-      <p>Status: <span id="status2">Loading...</span></p>
-    </div>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-      authDomain: "walastseen.firebaseapp.com",
-      projectId: "walastseen",
-      storageBucket: "walastseen.appspot.com",
-      messagingSenderId: "80496023280",
-      appId: "1:80496023280:web:3bea7627c6dcfcece59435"
-    };
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+            authDomain: "walastseen.firebaseapp.com",
+            projectId: "walastseen",
+            storageBucket: "walastseen.appspot.com",
+            messagingSenderId: "80496023280",
+            appId: "1:80496023280:web:3bea7627c6dcfcece59435"
+        };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-    // Function to fetch and display status
-    async function fetchStatus(contact, statusElementId) {
-      try {
-        const docRef = doc(db, "contactsStatus", contact);
-        const docSnap = await getDoc(docRef);
+        // Function to check if the user is logged in
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // User is logged in
+                fetchContactStatus();
+            } else {
+                // No user is logged in, redirect to login page
+                window.location.href = "index.html";
+            }
+        });
 
-        if (docSnap.exists()) {
-          const status = docSnap.data().status;
-          document.getElementById(statusElementId).textContent = status;
-          if (status === "online") {
-            document.getElementById(statusElementId).parentElement.classList.add("online");
-            document.getElementById(statusElementId).parentElement.classList.remove("offline");
-          } else if (status === "offline") {
-            document.getElementById(statusElementId).parentElement.classList.add("offline");
-            document.getElementById(statusElementId).parentElement.classList.remove("online");
-          }
-        } else {
-          document.getElementById(statusElementId).textContent = "Status not found";
+        // Function to fetch the contact status from Firestore
+        async function fetchContactStatus() {
+            try {
+                const contact1DocRef = doc(db, "contactsStatus", "+19048464390");
+                const contact2DocRef = doc(db, "contactsStatus", "+923440070803");
+
+                const contact1Doc = await getDoc(contact1DocRef);
+                const contact2Doc = await getDoc(contact2DocRef);
+
+                if (contact1Doc.exists()) {
+                    document.getElementById("status1").textContent = contact1Doc.data().status || "Offline";
+                } else {
+                    document.getElementById("status1").textContent = "Status not found";
+                }
+
+                if (contact2Doc.exists()) {
+                    document.getElementById("status2").textContent = contact2Doc.data().status || "Offline";
+                } else {
+                    document.getElementById("status2").textContent = "Status not found";
+                }
+            } catch (error) {
+                console.error("Error fetching contact status: ", error);
+                document.getElementById("status1").textContent = "Error fetching status";
+                document.getElementById("status2").textContent = "Error fetching status";
+            }
         }
-      } catch (error) {
-        console.error("Error fetching status: ", error);
-      }
-    }
-
-    // Fetch and display status for both contacts
-    fetchStatus("+19048464390", "status1");
-    fetchStatus("+923440070803", "status2");
-  </script>
+    </script>
 </body>
 </html>
