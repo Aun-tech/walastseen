@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WaLastSeen - Dashboard</title>
   <style>
     body {
@@ -14,47 +15,43 @@
       margin: 0;
     }
     .container {
+      text-align: center;
+      padding: 20px;
       background: #fff;
-      padding: 40px;
       border-radius: 10px;
       box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      width: 300px;
-      text-align: center;
     }
-    h2 {
+    h1 {
       margin-bottom: 20px;
     }
-    .contact {
-      margin-top: 20px;
-      padding: 10px;
-      border: 1px solid #ddd;
-      margin-bottom: 10px;
+    .contact-info {
+      margin-bottom: 20px;
     }
-    .status {
-      font-weight: bold;
+    .contact-info p {
+      margin: 10px 0;
+    }
+    .loading {
+      font-style: italic;
+      color: gray;
     }
   </style>
 </head>
 <body>
-
   <div class="container">
-    <h2>Welcome to WaLastSeen</h2>
-
-    <div class="contact">
+    <h1>Welcome to WaLastSeen</h1>
+    <div id="contact1" class="contact-info">
       <p>Contact 1: +19048464390</p>
-      <p id="contact1-status">Loading...</p>
+      <p id="status1" class="loading">Loading...</p>
     </div>
-
-    <div class="contact">
+    <div id="contact2" class="contact-info">
       <p>Contact 2: +923440070803</p>
-      <p id="contact2-status">Loading...</p>
+      <p id="status2" class="loading">Loading...</p>
     </div>
   </div>
 
   <script type="module">
-    // Firebase App SDK
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
@@ -65,31 +62,23 @@
       appId: "1:80496023280:web:3bea7627c6dcfcece59435"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Fetch status function
-    function fetchStatus(phoneNumber) {
-      const statusRef = db.collection('contactsStatus').doc(phoneNumber);
-      statusRef.get().then((doc) => {
-        if (doc.exists) {
-          const status = doc.data().status;
-          document.getElementById(`${phoneNumber}-status`).innerText = `Status: ${status}`;
-        } else {
-          console.log("No such document!");
-        }
-      }).catch((error) => {
-        console.log("Error getting document:", error);
-      });
+    async function getContactStatus(contactId, statusElementId) {
+      const docRef = doc(db, "contactsStatus", contactId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const status = docSnap.data().status;
+        document.getElementById(statusElementId).textContent = "Status: " + status;
+      } else {
+        document.getElementById(statusElementId).textContent = "No status found.";
+      }
     }
 
-    // On page load, fetch status for both contacts
-    window.onload = function() {
-      fetchStatus("+19048464390");
-      fetchStatus("+923440070803");
-    };
+    getContactStatus("+19048464390", "status1");
+    getContactStatus("+923440070803", "status2");
   </script>
-
 </body>
 </html>
