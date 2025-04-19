@@ -1,154 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WaLastSeen - Dashboard</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      max-width: 1000px;
-      margin: 0 auto;
-      background-color: #f5f5f5;
-    }
-    h1 {
-      color: #075e54;
-      text-align: center;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-      background-color: white;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #dddddd;
-    }
-    th {
-      background-color: #075e54;
-      color: white;
-      position: sticky;
-      top: 0;
-    }
-    tr:hover {
-      background-color: #f1f1f1;
-    }
-    .online {
-      color: #25D366;
-      font-weight: bold;
-    }
-    .offline {
-      color: #667781;
-    }
-    .typing {
-      color: #FFA500;
-      font-weight: bold;
-    }
-    #refreshBtn {
-      background-color: #075e54;
-      color: white;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 4px;
-      cursor: pointer;
-      float: right;
-      margin-bottom: 10px;
-    }
-    #refreshBtn:hover {
-      background-color: #128C7E;
-    }
-    #statusMessage {
-      text-align: center;
-      padding: 20px;
-      font-weight: bold;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Status Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #075e54;
+            text-align: center;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #075e54;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #075e54;
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .online {
+            color: #25D366;
+            font-weight: bold;
+        }
+        .offline {
+            color: #667781;
+        }
+        .typing {
+            color: #FFA500;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+        }
+        #loading {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+    </style>
 </head>
 <body>
-  <h1>WhatsApp Contact Status Tracker</h1>
-  <button id="refreshBtn">Refresh Data</button>
-  
-  <table id="statusTable">
-    <thead>
-      <tr>
-        <th>Phone Number</th>
-        <th>Status</th>
-        <th>Last Checked</th>
-      </tr>
-    </thead>
-    <tbody id="statusBody">
-      <tr>
-        <td colspan="3" id="statusMessage">Loading data...</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-
-  <script>
-    // ===== CONFIGURATION ===== //
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-      authDomain: "walastseen.firebaseapp.com",
-      projectId: "walastseen",
-      storageBucket: "walastseen.appspot.com",
-      messagingSenderId: "80496023280",
-      appId: "1:80496023280:web:3bea7627c6dcfcece59435"
-    };
-
-    // ===== FIREBASE INITIALIZATION ===== //
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore(app);
-    console.log("Firebase connected!");
-
-    // ===== LOAD DATA FUNCTION ===== //
-    function loadData() {
-      const statusBody = document.getElementById("statusBody");
-      const statusMessage = document.getElementById("statusMessage");
-      
-      statusBody.innerHTML = '<tr><td colspan="3" id="statusMessage">Loading...</td></tr>';
-      
-      db.collection("whatsapp_log")
-        .orderBy("timestamp", "desc")
-        .limit(20)
-        .get()
-        .then((querySnapshot) => {
-          if (querySnapshot.empty) {
-            statusMessage.textContent = "No data found! Make sure tracker.py is running.";
-            return;
-          }
-
-          statusBody.innerHTML = '';
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const row = document.createElement("tr");
-            
-            row.innerHTML = `
-              <td>${data.number}</td>
-              <td class="${data.status}">${data.status.toUpperCase()}</td>
-              <td>${data.timestamp}</td>
-            `;
-            
-            statusBody.appendChild(row);
-          });
-        })
-        .catch((error) => {
-          statusMessage.textContent = `Error: ${error.message}`;
-          console.error("Firebase error:", error);
-        });
-    }
-
-    // ===== SETUP EVENT LISTENERS ===== //
-    document.getElementById("refreshBtn").addEventListener("click", loadData);
-    window.addEventListener("load", loadData);
+    <h1>WhatsApp Status Logs</h1>
     
-    // Auto-refresh every 5 seconds
-    setInterval(loadData, 5000);
-  </script>
+    <div class="controls">
+        <button id="refreshBtn">Refresh Data</button>
+        <div>Last updated: <span id="lastUpdate">Never</span></div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Phone Number</th>
+                <th>Status</th>
+                <th>Last Checked</th>
+            </tr>
+        </thead>
+        <tbody id="logData">
+            <tr>
+                <td colspan="3" id="loading">Loading data...</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+    <script>
+        // Your Firebase Config (same as tracker.py)
+        const firebaseConfig = {
+            apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+            authDomain: "walastseen.firebaseapp.com",
+            projectId: "walastseen",
+            storageBucket: "walastseen.appspot.com",
+            messagingSenderId: "80496023280",
+            appId: "1:80496023280:web:3bea7627c6dcfcece59435"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore(app);
+
+        // Function to display logs
+        function displayLogs() {
+            const logTable = document.getElementById('logData');
+            logTable.innerHTML = '<tr><td colspan="3" id="loading">Loading data...</td></tr>';
+
+            db.collection("whatsapp_log")
+                .orderBy("timestamp", "desc")
+                .limit(50)
+                .get()
+                .then((querySnapshot) => {
+                    if (querySnapshot.empty) {
+                        logTable.innerHTML = '<tr><td colspan="3">No data found</td></tr>';
+                        return;
+                    }
+
+                    logTable.innerHTML = '';
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        const row = document.createElement('tr');
+                        
+                        row.innerHTML = `
+                            <td>${data.number}</td>
+                            <td class="${data.status}">${data.status.toUpperCase()}</td>
+                            <td>${new Date(data.timestamp).toLocaleString()}</td>
+                        `;
+                        
+                        logTable.appendChild(row);
+                    });
+                    
+                    // Update last refreshed time
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                })
+                .catch((error) => {
+                    logTable.innerHTML = `<tr><td colspan="3" class="error">Error loading data: ${error.message}</td></tr>`;
+                });
+        }
+
+        // Auto-refresh every 30 seconds
+        displayLogs();
+        setInterval(displayLogs, 30000);
+        
+        // Manual refresh button
+        document.getElementById('refreshBtn').addEventListener('click', displayLogs);
+    </script>
 </body>
 </html>
