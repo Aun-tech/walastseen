@@ -61,6 +61,11 @@
     #refreshBtn:hover {
       background-color: #128C7E;
     }
+    #statusMessage {
+      text-align: center;
+      padding: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -76,20 +81,17 @@
       </tr>
     </thead>
     <tbody id="statusBody">
-      <!-- Data will load here automatically -->
       <tr>
-        <td colspan="3" style="text-align: center;">Loading data...</td>
+        <td colspan="3" id="statusMessage">Loading data...</td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
   <script>
     // ===== CONFIGURATION ===== //
-    // REPLACE WITH YOUR FIREBASE CONFIG (from Firebase project settings)
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
       authDomain: "walastseen.firebaseapp.com",
@@ -102,68 +104,51 @@
     // ===== FIREBASE INITIALIZATION ===== //
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
-    console.log("Firebase connected successfully!");
+    console.log("Firebase connected!");
 
-    // ===== MAIN FUNCTION TO LOAD DATA ===== //
-    function loadStatusData() {
+    // ===== LOAD DATA FUNCTION ===== //
+    function loadData() {
+      const statusBody = document.getElementById("statusBody");
+      const statusMessage = document.getElementById("statusMessage");
+      
+      statusBody.innerHTML = '<tr><td colspan="3" id="statusMessage">Loading...</td></tr>';
+      
       db.collection("whatsapp_log")
         .orderBy("timestamp", "desc")
         .limit(20)
         .get()
         .then((querySnapshot) => {
-          const statusBody = document.getElementById("statusBody");
-          
           if (querySnapshot.empty) {
-            statusBody.innerHTML = `
-              <tr>
-                <td colspan="3" style="text-align: center; color: red;">
-                  No data found! Make sure tracker.py is running.
-                </td>
-              </tr>
-            `;
+            statusMessage.textContent = "No data found! Make sure tracker.py is running.";
             return;
           }
 
-          statusBody.innerHTML = ''; // Clear loading message
-          
+          statusBody.innerHTML = '';
           querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const row = `
-              <tr>
-                <td>${data.number}</td>
-                <td class="${data.status}">${data.status.toUpperCase()}</td>
-                <td>${data.timestamp}</td>
-              </tr>
+            const row = document.createElement("tr");
+            
+            row.innerHTML = `
+              <td>${data.number}</td>
+              <td class="${data.status}">${data.status.toUpperCase()}</td>
+              <td>${data.timestamp}</td>
             `;
-            statusBody.innerHTML += row;
+            
+            statusBody.appendChild(row);
           });
         })
         .catch((error) => {
-          console.error("Error loading data:", error);
-          document.getElementById("statusBody").innerHTML = `
-            <tr>
-              <td colspan="3" style="text-align: center; color: red;">
-                Error loading data: ${error.message}
-              </td>
-            </tr>
-          `;
+          statusMessage.textContent = `Error: ${error.message}`;
+          console.error("Firebase error:", error);
         });
     }
 
-    // ===== SETUP AUTO-REFRESH ===== //
-    // Refresh immediately on load
-    loadStatusData();
+    // ===== SETUP EVENT LISTENERS ===== //
+    document.getElementById("refreshBtn").addEventListener("click", loadData);
+    window.addEventListener("load", loadData);
     
-    // Refresh every 10 seconds
-    const refreshInterval = setInterval(loadStatusData, 10000);
-    
-    // Manual refresh button
-    document.getElementById("refreshBtn").addEventListener("click", loadStatusData);
-
-    // ===== CLEANUP ON PAGE CLOSE ===== //
-    window.addEventListener("beforeunload", () => {
-      clearInterval(refreshInterval);
-    });
+    // Auto-refresh every 5 seconds
+    setInterval(loadData, 5000);
   </script>
 </body>
 </html>
