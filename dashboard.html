@@ -4,22 +4,67 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WaLastSeen - Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #075e54;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #075e54;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .online {
+      color: green;
+      font-weight: bold;
+    }
+    .offline {
+      color: gray;
+    }
+    .typing {
+      color: orange;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome to WaLastSeen</h1>
-  <div id="contact1">
-    <h3>Contact 1: +19048464390</h3>
-    <p>Status: <span id="status1">Loading...</span></p>
-  </div>
-  <div id="contact2">
-    <h3>Contact 2: +923440070803</h3>
-    <p>Status: <span id="status2">Loading...</span></p>
-  </div>
+  <h1>WhatsApp Contact Status</h1>
+  <table id="statusTable">
+    <thead>
+      <tr>
+        <th>Phone Number</th>
+        <th>Status</th>
+        <th>Last Updated</th>
+      </tr>
+    </thead>
+    <tbody id="statusBody">
+      <!-- Data will appear here automatically -->
+    </tbody>
+  </table>
 
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-  
+
   <script>
+    // Your Firebase Config (same as before)
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
       authDomain: "walastseen.firebaseapp.com",
@@ -29,26 +74,46 @@
       appId: "1:80496023280:web:3bea7627c6dcfcece59435"
     };
 
+    // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
 
-    // Function to get the status of contacts
-    async function getStatus(contactId, statusElement) {
-      const docRef = db.collection('contactsStatus').doc(contactId);
-      const doc = await docRef.get();
+    // Function to update the table
+    function updateTable() {
+      db.collection("whatsapp_log")
+        .orderBy("timestamp", "desc")
+        .limit(10)
+        .onSnapshot((snapshot) => {
+          const statusBody = document.getElementById("statusBody");
+          statusBody.innerHTML = ""; // Clear existing rows
 
-      if (doc.exists) {
-        statusElement.innerText = doc.data().status;
-      } else {
-        statusElement.innerText = "Not available";
-      }
+          snapshot.forEach((doc) => {
+            const data = doc.data();
+            const row = document.createElement("tr");
+
+            // Phone Number
+            const numberCell = document.createElement("td");
+            numberCell.textContent = data.number;
+            row.appendChild(numberCell);
+
+            // Status
+            const statusCell = document.createElement("td");
+            statusCell.textContent = data.status;
+            statusCell.className = data.status; // Adds CSS class
+            row.appendChild(statusCell);
+
+            // Timestamp
+            const timeCell = document.createElement("td");
+            timeCell.textContent = data.timestamp;
+            row.appendChild(timeCell);
+
+            statusBody.appendChild(row);
+          });
+        });
     }
 
-    // Fetch status for both contacts
-    window.onload = function() {
-      getStatus("+19048464390", document.getElementById('status1'));
-      getStatus("+923440070803", document.getElementById('status2'));
-    };
+    // Start updating when page loads
+    window.onload = updateTable;
   </script>
 </body>
 </html>
