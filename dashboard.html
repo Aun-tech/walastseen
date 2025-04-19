@@ -10,52 +10,76 @@
       padding: 20px;
       max-width: 1000px;
       margin: 0 auto;
+      background-color: #f5f5f5;
     }
     h1 {
       color: #075e54;
+      text-align: center;
     }
     table {
       width: 100%;
       border-collapse: collapse;
       margin-top: 20px;
+      background-color: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     th, td {
-      padding: 12px;
+      padding: 12px 15px;
       text-align: left;
-      border-bottom: 1px solid #ddd;
+      border-bottom: 1px solid #dddddd;
     }
     th {
       background-color: #075e54;
       color: white;
+      position: sticky;
+      top: 0;
     }
     tr:hover {
-      background-color: #f5f5f5;
+      background-color: #f1f1f1;
     }
     .online {
-      color: green;
+      color: #25D366;
       font-weight: bold;
     }
     .offline {
-      color: gray;
+      color: #667781;
     }
     .typing {
-      color: orange;
+      color: #FFA500;
       font-weight: bold;
+    }
+    #refreshBtn {
+      background-color: #075e54;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      float: right;
+      margin-bottom: 10px;
+    }
+    #refreshBtn:hover {
+      background-color: #128C7E;
     }
   </style>
 </head>
 <body>
-  <h1>WhatsApp Contact Status</h1>
+  <h1>WhatsApp Contact Status Tracker</h1>
+  <button id="refreshBtn">Refresh Data</button>
+  
   <table id="statusTable">
     <thead>
       <tr>
         <th>Phone Number</th>
         <th>Status</th>
-        <th>Last Updated</th>
+        <th>Last Checked</th>
       </tr>
     </thead>
     <tbody id="statusBody">
-      <!-- Data will appear here automatically -->
+      <!-- Data will load here automatically -->
+      <tr>
+        <td colspan="3" style="text-align: center;">Loading data...</td>
+      </tr>
     </tbody>
   </table>
 
@@ -64,7 +88,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
   <script>
-    // Your Firebase Config (same as before)
+    // ===== CONFIGURATION ===== //
+    // REPLACE WITH YOUR FIREBASE CONFIG (from Firebase project settings)
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
       authDomain: "walastseen.firebaseapp.com",
@@ -74,46 +99,71 @@
       appId: "1:80496023280:web:3bea7627c6dcfcece59435"
     };
 
-    // Initialize Firebase
+    // ===== FIREBASE INITIALIZATION ===== //
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore(app);
+    console.log("Firebase connected successfully!");
 
-    // Function to update the table
-    function updateTable() {
+    // ===== MAIN FUNCTION TO LOAD DATA ===== //
+    function loadStatusData() {
       db.collection("whatsapp_log")
         .orderBy("timestamp", "desc")
-        .limit(10)
-        .onSnapshot((snapshot) => {
+        .limit(20)
+        .get()
+        .then((querySnapshot) => {
           const statusBody = document.getElementById("statusBody");
-          statusBody.innerHTML = ""; // Clear existing rows
+          
+          if (querySnapshot.empty) {
+            statusBody.innerHTML = `
+              <tr>
+                <td colspan="3" style="text-align: center; color: red;">
+                  No data found! Make sure tracker.py is running.
+                </td>
+              </tr>
+            `;
+            return;
+          }
 
-          snapshot.forEach((doc) => {
+          statusBody.innerHTML = ''; // Clear loading message
+          
+          querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const row = document.createElement("tr");
-
-            // Phone Number
-            const numberCell = document.createElement("td");
-            numberCell.textContent = data.number;
-            row.appendChild(numberCell);
-
-            // Status
-            const statusCell = document.createElement("td");
-            statusCell.textContent = data.status;
-            statusCell.className = data.status; // Adds CSS class
-            row.appendChild(statusCell);
-
-            // Timestamp
-            const timeCell = document.createElement("td");
-            timeCell.textContent = data.timestamp;
-            row.appendChild(timeCell);
-
-            statusBody.appendChild(row);
+            const row = `
+              <tr>
+                <td>${data.number}</td>
+                <td class="${data.status}">${data.status.toUpperCase()}</td>
+                <td>${data.timestamp}</td>
+              </tr>
+            `;
+            statusBody.innerHTML += row;
           });
+        })
+        .catch((error) => {
+          console.error("Error loading data:", error);
+          document.getElementById("statusBody").innerHTML = `
+            <tr>
+              <td colspan="3" style="text-align: center; color: red;">
+                Error loading data: ${error.message}
+              </td>
+            </tr>
+          `;
         });
     }
 
-    // Start updating when page loads
-    window.onload = updateTable;
+    // ===== SETUP AUTO-REFRESH ===== //
+    // Refresh immediately on load
+    loadStatusData();
+    
+    // Refresh every 10 seconds
+    const refreshInterval = setInterval(loadStatusData, 10000);
+    
+    // Manual refresh button
+    document.getElementById("refreshBtn").addEventListener("click", loadStatusData);
+
+    // ===== CLEANUP ON PAGE CLOSE ===== //
+    window.addEventListener("beforeunload", () => {
+      clearInterval(refreshInterval);
+    });
   </script>
 </body>
 </html>
