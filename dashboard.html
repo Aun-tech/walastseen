@@ -1,160 +1,171 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Status Tracker</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        h1 {
-            color: #075e54;
-            text-align: center;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin: 20px 0;
-        }
-        button {
-            background-color: #075e54;
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #075e54;
-            color: white;
-            position: sticky;
-            top: 0;
-        }
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-        .online {
-            color: #25D366;
-            font-weight: bold;
-        }
-        .offline {
-            color: #667781;
-        }
-        .typing {
-            color: #FFA500;
-            font-weight: bold;
-        }
-        .error {
-            color: red;
-        }
-        #loading {
-            text-align: center;
-            padding: 20px;
-            font-style: italic;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>WhatsApp Status Tracker</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    h1 {
+      color: #075e54;
+      text-align: center;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      margin: 20px 0;
+    }
+    button {
+      background-color: #075e54;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #075e54;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .online {
+      color: #25D366;
+      font-weight: bold;
+    }
+    .offline {
+      color: #667781;
+    }
+    .typing {
+      color: #FFA500;
+      font-weight: bold;
+    }
+    .error {
+      color: red;
+    }
+    #loading {
+      text-align: center;
+      padding: 20px;
+      font-style: italic;
+    }
+    @media (max-width: 600px) {
+      .controls {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      th {
+        position: relative;
+      }
+      td {
+        padding-left: 50%;
+        position: relative;
+      }
+      td::before {
+        position: absolute;
+        left: 10px;
+        width: 45%;
+        white-space: nowrap;
+      }
+      td:nth-of-type(1)::before { content: "Phone Number"; }
+      td:nth-of-type(2)::before { content: "Status"; }
+      td:nth-of-type(3)::before { content: "Last Checked"; }
+    }
+  </style>
 </head>
 <body>
-    <h1>WhatsApp Status Logs</h1>
-    
-    <div class="controls">
-        <button id="refreshBtn">Refresh Data</button>
-        <div>Last updated: <span id="lastUpdate">Never</span></div>
-    </div>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Phone Number</th>
-                <th>Status</th>
-                <th>Last Checked</th>
-            </tr>
-        </thead>
-        <tbody id="logData">
-            <tr>
-                <td colspan="3" id="loading">Loading data...</td>
-            </tr>
-        </tbody>
-    </table>
+  <h1>WhatsApp Status Logs</h1>
+  
+  <div class="controls">
+    <button id="refreshBtn">Refresh Data</button>
+    <button id="exportBtn">Export Logs</button>
+    <div>Last updated: <span id="lastUpdate">Never</span></div>
+  </div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Phone Number</th>
+        <th>Status</th>
+        <th>Last Checked</th>
+      </tr>
+    </thead>
+    <tbody id="logData">
+      <tr>
+        <td colspan="3" id="loading">Loading data...</td>
+      </tr>
+    </tbody>
+  </table>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
 
-    <script>
-        // Your Firebase Config (same as tracker.py)
-        const firebaseConfig = {
-            apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-            authDomain: "walastseen.firebaseapp.com",
-            projectId: "walastseen",
-            storageBucket: "walastseen.appspot.com",
-            messagingSenderId: "80496023280",
-            appId: "1:80496023280:web:3bea7627c6dcfcece59435"
-        };
+  <script>
+    // Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+      authDomain: "walastseen.firebaseapp.com",
+      projectId: "walastseen",
+      storageBucket: "walastseen.appspot.com",
+      messagingSenderId: "80496023280",
+      appId: "1:80496023280:web:3bea7627c6dcfcece59435"
+    };
 
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(app);
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(app);
 
-        // Function to display logs
-        function displayLogs() {
-            const logTable = document.getElementById('logData');
-            logTable.innerHTML = '<tr><td colspan="3" id="loading">Loading data...</td></tr>';
+    // Function to display logs
+    async function displayLogs() {
+      const logTable = document.getElementById('logData');
+      logTable.innerHTML = '<tr><td colspan="3" id="loading">Loading data...</td></tr>';
 
-            db.collection("whatsapp_log")
-                .orderBy("timestamp", "desc")
-                .limit(50)
-                .get()
-                .then((querySnapshot) => {
-                    if (querySnapshot.empty) {
-                        logTable.innerHTML = '<tr><td colspan="3">No data found</td></tr>';
-                        return;
-                    }
+      try {
+        const querySnapshot = await db.collection("whatsapp_log")
+          .orderBy("timestamp", "desc")
+          .limit(50)
+          .get();
 
-                    logTable.innerHTML = '';
-                    querySnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        const row = document.createElement('tr');
-                        
-                        row.innerHTML = `
-                            <td>${data.number}</td>
-                            <td class="${data.status}">${data.status.toUpperCase()}</td>
-                            <td>${new Date(data.timestamp).toLocaleString()}</td>
-                        `;
-                        
-                        logTable.appendChild(row);
-                    });
-                    
-                    // Update last refreshed time
-                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
-                })
-                .catch((error) => {
-                    logTable.innerHTML = `<tr><td colspan="3" class="error">Error loading data: ${error.message}</td></tr>`;
-                });
+        if (querySnapshot.empty) {
+          logTable.innerHTML = '<tr><td colspan="3">No data found</td></tr>';
+          return;
         }
 
-        // Auto-refresh every 30 seconds
-        displayLogs();
-        setInterval(displayLogs, 30000);
-        
-        // Manual refresh button
-        document.getElementById('refreshBtn').addEventListener('click', displayLogs);
-    </script>
-</body>
-</html>
+        logTable.innerHTML = '';
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          const row = document.createElement('tr');
+          
+          const statusClass = data.status.toLowerCase();
+          const statusText = data.status.toUpperCase();
+          const timestamp = data.timestamp?.toDate().toLocaleString() || 'N/A';
+
+          row.innerHTML = `
+            <td>${data.number}</td>
+            <td class="${
+::contentReference[oaicite:15]{index=15}
