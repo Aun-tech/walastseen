@@ -1,130 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>WhatsApp Last Seen Tracker</title>
+  <!-- Bootstrap CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-    import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+    import {
+      getFirestore,
+      collection,
+      query,
+      orderBy,
+      onSnapshot,
+    } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-      authDomain: "walastseen.firebaseapp.com",
-      projectId: "walastseen",
-      storageBucket: "walastseen.firebasestorage.app",
-      messagingSenderId: "80496023280",
-      appId: "1:80496023280:web:3bea7627c6dcfcece59435",
-      measurementId: "G-KMMGEHY5GJ"
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID",
+      measurementId: "YOUR_MEASUREMENT_ID",
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    // Fetch and display logs
     const logContainer = document.getElementById("logs");
-    const timeline = document.getElementById("timeline");
-    const summary = document.getElementById("summary");
-
-    function formatAMPM(dateStr) {
-      const date = new Date(dateStr);
-      let hours = date.getHours();
-      let minutes = date.getMinutes();
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      minutes = minutes < 10 ? '0'+minutes : minutes;
-      return `${date.toDateString()}, ${hours}:${minutes} ${ampm}`;
-    }
-
-    function downloadCSV(csv, filename) {
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.setAttribute('href', url);
-      a.setAttribute('download', filename);
-      a.click();
-    }
-
-    document.getElementById("downloadBtn").onclick = () => {
-      const csv = logs.map(log => `${log.number},${log.status},${log.timestamp}`).join("\n");
-      downloadCSV(csv, "whatsapp_logs.csv");
-    }
-
-    let logs = [];
-
+    const summaryContainer = document.getElementById("summary");
     const q = query(collection(db, "whatsapp_log"), orderBy("timestamp", "desc"));
+
     onSnapshot(q, (snapshot) => {
       logContainer.innerHTML = "";
-      timeline.innerHTML = "";
-      summary.innerHTML = "";
-      logs = [];
-
+      summaryContainer.innerHTML = "";
       const logsByNumber = {};
+
       snapshot.forEach((doc) => {
         const data = doc.data();
-        logs.push(data);
-        if (!logsByNumber[data.number]) logsByNumber[data.number] = [];
+        if (!logsByNumber[data.number]) {
+          logsByNumber[data.number] = [];
+        }
         logsByNumber[data.number].push(data);
       });
 
       for (const number in logsByNumber) {
-        const userLogs = logsByNumber[number];
-        let sessionCount = 0;
-        let totalOnline = 0;
+        const logs = logsByNumber[number];
         let onlineTime = null;
+        let totalDuration = 0;
+        let sessionCount = 0;
 
-        userLogs.forEach((log) => {
-          const time = new Date(log.timestamp);
-          const pktTime = formatAMPM(log.timestamp);
-          const et = new Date(time);
-          et.setHours(et.getHours() - 10);
-          const etTime = formatAMPM(et);
+        logs.forEach((log) => {
+          const currentTime = new Date(log.timestamp);
+          let duration = "N/A";
 
           if (log.status === "online") {
-            onlineTime = time;
+            onlineTime = currentTime;
           }
 
-          let duration = "N/A";
           if (log.status === "offline" && onlineTime) {
-            const diffMs = time - onlineTime;
-            totalOnline += diffMs;
-            sessionCount++;
-            const min = Math.floor(diffMs / 60000);
-            const sec = Math.floor((diffMs % 60000) / 1000);
-            duration = `${min} min ${sec} sec`;
+            const diffMs = currentTime - onlineTime;
+            const diffMin = Math.floor(diffMs / 60000);
+            const diffSec = Math.floor((diffMs % 60000) / 1000);
+            duration = `${diffMin} min ${diffSec} sec`;
+            totalDuration += diffMs;
+            sessionCount += 1;
             onlineTime = null;
           }
 
+          const pktTime = currentTime.toLocaleString("en-PK", {
+            timeZone: "Asia/Karachi",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: true,
+          });
+
+          const etTime = currentTime.toLocaleString("en-US", {
+            timeZone: "America/New_York",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: true,
+          });
+
           const entry = document.createElement("div");
-          entry.classList.add("log-entry");
+          entry.classList.add("card", "mb-2");
           entry.innerHTML = `
-            <div><b>Number:</b> ${log.number}</div>
-            <div><b>Status:</b> ${log.status}</div>
-            <div><b>Time (PKT):</b> ${pktTime}</div>
-            <div><b>Time (ET):</b> ${etTime}</div>
-            <div><b>Duration:</b> ${duration}</div>
-            <hr>
+            <div class="card-body">
+              <h5 class="card-title">Number: ${log.number}</h5>
+              <p class="card-text">
+                Status: <span class="${log.status === 'online' ? 'text-success' : 'text-danger'}">${log.status}</span><br />
+                Time (PKT): ${pktTime}<br />
+                Time (ET): ${etTime}<br />
+                Session Duration: ${duration}
+              </p>
+            </div>
           `;
           logContainer.appendChild(entry);
         });
 
-        const minTotal = Math.floor(totalOnline / 60000);
-        summary.innerHTML += `<p><b>${number}</b>: ${sessionCount} sessions, total ${minTotal} min</p>`;
+        const totalMinutes = Math.floor(totalDuration / 60000);
+        const summary = document.createElement("div");
+        summary.classList.add("alert", "alert-info");
+        summary.innerText = `📊 ${number} was online ${sessionCount} times today, total ${totalMinutes} minutes.`;
+        summaryContainer.appendChild(summary);
       }
     });
   </script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; color: #333; }
-    h2 { color: #4a90e2; }
-    .log-entry { background: #fff; margin-bottom: 10px; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    #timeline { margin-top: 20px; }
-    #downloadBtn { padding: 8px 16px; background: #4a90e2; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+    body {
+      padding: 20px;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #ffffff;
+    }
+    .dark-mode .card {
+      background-color: #1e1e1e;
+    }
+    .dark-mode .alert-info {
+      background-color: #333333;
+      color: #ffffff;
+    }
+    /* Analog Clock Styles */
+    #analogClock {
+      width: 300px;
+      height: 300px;
+      margin: auto;
+    }
+    /* Collapsible Log Table Styles */
+    #logSidebar {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 300px;
+      height: 100%;
+      background-color: #f8f9fa;
+      overflow-x: hidden;
+      transition: 0.5s;
+      padding: 10px;
+      z-index: 1000;
+    }
+    #logSidebar table {
+      width: 100%;
+    }
+    #logSidebar .closebtn {
+      position: absolute;
+      top: 10px;
+      right: 25px;
+      font-size: 36px;
+    }
   </style>
 </head>
 <body>
-  <h2>📱 WhatsApp Last Seen Tracker</h2>
-  <div id="summary"></div>
-  <button id="downloadBtn">⬇️ Export Logs as CSV</button>
-  <div id="logs">Loading...</div>
-  <div id="timeline"></div>
-</body>
-</html>
+  <div class="container">
+    <h1 class="mb-4">📱 WhatsApp Last Seen Tracker</h1>
+    <button class="btn btn-secondary mb-3" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    <button class="btn btn-primary mb-3" onclick="exportCSV()">Export CSV</button>
+    <button class="btn btn-info mb-3" onclick="openLogSidebar()">View Logs</button>
+    <div id="summary"></div>
+    <div id="logs">Loading data...</div>
+    <!-- Analog Clock Visualization -->
+    <div id="analogClock">
+      <!-- Implement SVG or Canvas-based analog clock here -->
+      <!-- For example, you can use the SVG clock from CodePen: https://codepen.io/udyux/pen/VeKeEm -->
+    </div>
+    <!-- Timeline
+::contentReference[oaicite:9]{index=9}
+ 
