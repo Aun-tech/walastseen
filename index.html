@@ -1,61 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Last Seen Tracker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp Last Seen Tracker</title>
+  <!-- Add Firebase SDK scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-analytics.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-firestore.js"></script>
 
-    <!-- Add Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.8.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js"></script>
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+      authDomain: "walastseen.firebaseapp.com",
+      projectId: "walastseen",
+      storageBucket: "walastseen.firebasestorage.app",
+      messagingSenderId: "80496023280",
+      appId: "1:80496023280:web:3bea7627c6dcfcece59435",
+      measurementId: "G-KMMGEHY5GJ"
+    };
 
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const analytics = firebase.analytics(app);
+    const db = firebase.firestore(app);
+
+    // Fetch and display data from Firestore
+    function fetchData() {
+      db.collection("whatsapp_log").orderBy("timestamp", "desc").limit(10).get()
+        .then(snapshot => {
+          const output = document.getElementById("status-log");
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const statusItem = document.createElement("div");
+            statusItem.innerHTML = `${data.number} is ${data.status} (Last seen: ${data.timestamp})`;
+            output.appendChild(statusItem);
+          });
+        })
+        .catch(error => {
+          console.error("Error fetching data:", error);
+        });
+    }
+
+    // Call the fetch function on page load
+    window.onload = fetchData;
+  </script>
 </head>
 <body>
-    <h1>WhatsApp Last Seen Tracker</h1>
-    
-    <div id="logs-container">
-        <!-- Logs will be displayed here -->
-    </div>
-
-    <script>
-        // Firebase config from your Firebase Console (found under Project Settings)
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID",
-            measurementId: "YOUR_MEASUREMENT_ID"
-        };
-
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-
-        // Fetch and display data
-        async function fetchLogs() {
-            const logsRef = db.collection("whatsapp_log");
-            const snapshot = await logsRef.orderBy("timestamp", "desc").limit(10).get();
-
-            let logsHtml = '';
-            snapshot.forEach(doc => {
-                const log = doc.data();
-                logsHtml += `
-                    <div>
-                        <strong>Number:</strong> ${log.number} <br>
-                        <strong>Status:</strong> ${log.status} <br>
-                        <strong>Timestamp:</strong> ${log.timestamp} <br>
-                        <hr>
-                    </div>
-                `;
-            });
-
-            document.getElementById('logs-container').innerHTML = logsHtml;
-        }
-
-        // Call the function to fetch logs on page load
-        window.onload = fetchLogs;
-    </script>
+  <h1>WhatsApp Last Seen Tracker</h1>
+  <div id="status-log">
+    <!-- This is where the WhatsApp status will be displayed -->
+  </div>
 </body>
 </html>
