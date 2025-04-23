@@ -9,7 +9,7 @@
     // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
-
+    
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
       authDomain: "walastseen.firebaseapp.com",
@@ -23,24 +23,21 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // === FILTER LOGS ===
-    const filterSelect = document.getElementById("filterSelect");
     const logContainer = document.getElementById("logs");
     const sessionDetailsModal = document.getElementById("sessionDetailsModal");
     const sessionDetailsContent = document.getElementById("sessionDetailsContent");
+    const filterSelect = document.getElementById("filterSelect");
 
-    // Helper function to filter logs based on date
-    const filterLogs = (filterType) => {
-      let filterCondition;
-      const currentDate = new Date();
-      
-      if (filterType === 'today') {
-        const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
-        filterCondition = query(collection(db, "whatsapp_log"), orderBy("timestamp", "desc"));
-      }
-      // Add conditions for Yesterday & Last 7 Days
-
-      return filterCondition;
+    // Function to convert timestamps to AM/PM format
+    const formatAMPM = (timestamp) => {
+      const date = new Date(timestamp);
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours % 12;
+      const minutesFormatted = minutes < 10 ? '0' + minutes : minutes;
+      const formattedTime = `${hours12 === 0 ? 12 : hours12}:${minutesFormatted} ${ampm}`;
+      return formattedTime;
     };
 
     // === FETCH & DISPLAY LOGS ===
@@ -49,12 +46,25 @@
       logContainer.innerHTML = ""; // Clear before updating
       snapshot.forEach((doc) => {
         const data = doc.data();
+        
+        // Convert timestamps to AM/PM
+        const pktTime = formatAMPM(data.timestamp);
+        const floridaTime = new Date(data.timestamp);
+        floridaTime.setHours(floridaTime.getHours() - 10); // Adjust for time difference
+        const etTime = formatAMPM(floridaTime);
+        
+        // Calculate the time spent online (if data allows for this)
+        const onlineDuration = data.onlineTime ? `${data.onlineTime} minutes` : "N/A";  // Placeholder logic, update with your logic
+
+        // Create log entry
         const entry = document.createElement("div");
         entry.innerHTML = `
           <div class="log-entry">
             <div><b>Number:</b> ${data.number}</div>
             <div><b>Status:</b> ${data.status}</div>
-            <div><b>Time:</b> ${data.timestamp}</div>
+            <div><b>Time (PKT):</b> ${pktTime}</div>
+            <div><b>Time (ET):</b> ${etTime}</div>
+            <div><b>Online Duration:</b> ${onlineDuration}</div>
             <button class="view-session-btn" onclick="showSessionDetails(${data.number})">View Session Details</button>
           </div>
         `;
@@ -65,7 +75,7 @@
     // Show session details in modal
     const showSessionDetails = (number) => {
       sessionDetailsContent.innerHTML = `<h3>Session Details for ${number}</h3>`;
-      // Fetch session details and display them here
+      // Add session details here (adjust your logic to fetch this info)
       sessionDetailsModal.style.display = 'block';
     };
 
@@ -73,6 +83,41 @@
     const closeModal = () => {
       sessionDetailsModal.style.display = 'none';
     };
+
+    // Filter logs based on selected filter (Today, Yesterday, Last 7 Days)
+    const filterLogs = (filterType) => {
+      const currentDate = new Date();
+      let startDate;
+
+      switch (filterType) {
+        case 'today':
+          startDate = new Date(currentDate.setHours(0, 0, 0, 0));
+          break;
+        case 'yesterday':
+          startDate = new Date(currentDate.setDate(currentDate.getDate() - 1));
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'last7days':
+          startDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
+          break;
+        default:
+          startDate = new Date(0);  // Default to no filter
+          break;
+      }
+
+      // Re-fetch data based on filter
+      const qFiltered = query(
+        collection(db, "whatsapp_log"),
+        orderBy("timestamp", "desc")
+        // Add conditions here for filtering by startDate
+      );
+    };
+
+    // Handle filter change
+    filterSelect.addEventListener('change', (event) => {
+      filterLogs(event.target.value);
+    });
+
   </script>
 
   <!-- Modal for session details -->
