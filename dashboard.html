@@ -2,14 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WhatsApp Last Seen Tracker</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
   <script type="module">
-    // === FIREBASE SETUP ===
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
     import { getFirestore, collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
-    
+
     const firebaseConfig = {
       apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
       authDomain: "walastseen.firebaseapp.com",
@@ -24,147 +21,110 @@
     const db = getFirestore(app);
 
     const logContainer = document.getElementById("logs");
-    const sessionDetailsModal = document.getElementById("sessionDetailsModal");
-    const sessionDetailsContent = document.getElementById("sessionDetailsContent");
-    const filterSelect = document.getElementById("filterSelect");
+    const timeline = document.getElementById("timeline");
+    const summary = document.getElementById("summary");
 
-    // Function to convert timestamps to AM/PM format
-    const formatAMPM = (timestamp) => {
-      const date = new Date(timestamp);
-      const hours = date.getHours();
-      const minutes = date.getMinutes();
+    function formatAMPM(dateStr) {
+      const date = new Date(dateStr);
+      let hours = date.getHours();
+      let minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
-      const hours12 = hours % 12;
-      const minutesFormatted = minutes < 10 ? '0' + minutes : minutes;
-      const formattedTime = `${hours12 === 0 ? 12 : hours12}:${minutesFormatted} ${ampm}`;
-      return formattedTime;
-    };
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      minutes = minutes < 10 ? '0'+minutes : minutes;
+      return `${date.toDateString()}, ${hours}:${minutes} ${ampm}`;
+    }
 
-    // === FETCH & DISPLAY LOGS ===
+    function downloadCSV(csv, filename) {
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', filename);
+      a.click();
+    }
+
+    document.getElementById("downloadBtn").onclick = () => {
+      const csv = logs.map(log => `${log.number},${log.status},${log.timestamp}`).join("\n");
+      downloadCSV(csv, "whatsapp_logs.csv");
+    }
+
+    let logs = [];
+
     const q = query(collection(db, "whatsapp_log"), orderBy("timestamp", "desc"));
     onSnapshot(q, (snapshot) => {
-      logContainer.innerHTML = ""; // Clear before updating
+      logContainer.innerHTML = "";
+      timeline.innerHTML = "";
+      summary.innerHTML = "";
+      logs = [];
+
+      const logsByNumber = {};
       snapshot.forEach((doc) => {
         const data = doc.data();
-        
-        // Convert timestamps to AM/PM
-        const pktTime = formatAMPM(data.timestamp);
-        const floridaTime = new Date(data.timestamp);
-        floridaTime.setHours(floridaTime.getHours() - 10); // Adjust for time difference
-        const etTime = formatAMPM(floridaTime);
-        
-        // Calculate the time spent online (if data allows for this)
-        const onlineDuration = data.onlineTime ? `${data.onlineTime} minutes` : "N/A";  // Placeholder logic, update with your logic
+        logs.push(data);
+        if (!logsByNumber[data.number]) logsByNumber[data.number] = [];
+        logsByNumber[data.number].push(data);
+      });
 
-        // Create log entry
-        const entry = document.createElement("div");
-        entry.innerHTML = `
-          <div class="log-entry">
-            <div><b>Number:</b> ${data.number}</div>
-            <div><b>Status:</b> ${data.status}</div>
+      for (const number in logsByNumber) {
+        const userLogs = logsByNumber[number];
+        let sessionCount = 0;
+        let totalOnline = 0;
+        let onlineTime = null;
+
+        userLogs.forEach((log) => {
+          const time = new Date(log.timestamp);
+          const pktTime = formatAMPM(log.timestamp);
+          const et = new Date(time);
+          et.setHours(et.getHours() - 10);
+          const etTime = formatAMPM(et);
+
+          if (log.status === "online") {
+            onlineTime = time;
+          }
+
+          let duration = "N/A";
+          if (log.status === "offline" && onlineTime) {
+            const diffMs = time - onlineTime;
+            totalOnline += diffMs;
+            sessionCount++;
+            const min = Math.floor(diffMs / 60000);
+            const sec = Math.floor((diffMs % 60000) / 1000);
+            duration = `${min} min ${sec} sec`;
+            onlineTime = null;
+          }
+
+          const entry = document.createElement("div");
+          entry.classList.add("log-entry");
+          entry.innerHTML = `
+            <div><b>Number:</b> ${log.number}</div>
+            <div><b>Status:</b> ${log.status}</div>
             <div><b>Time (PKT):</b> ${pktTime}</div>
             <div><b>Time (ET):</b> ${etTime}</div>
-            <div><b>Online Duration:</b> ${onlineDuration}</div>
-            <button class="view-session-btn" onclick="showSessionDetails(${data.number})">View Session Details</button>
-          </div>
-        `;
-        logContainer.appendChild(entry);
-      });
-    });
+            <div><b>Duration:</b> ${duration}</div>
+            <hr>
+          `;
+          logContainer.appendChild(entry);
+        });
 
-    // Show session details in modal
-    const showSessionDetails = (number) => {
-      sessionDetailsContent.innerHTML = `<h3>Session Details for ${number}</h3>`;
-      // Add session details here (adjust your logic to fetch this info)
-      sessionDetailsModal.style.display = 'block';
-    };
-
-    // Close session details modal
-    const closeModal = () => {
-      sessionDetailsModal.style.display = 'none';
-    };
-
-    // Filter logs based on selected filter (Today, Yesterday, Last 7 Days)
-    const filterLogs = (filterType) => {
-      const currentDate = new Date();
-      let startDate;
-
-      switch (filterType) {
-        case 'today':
-          startDate = new Date(currentDate.setHours(0, 0, 0, 0));
-          break;
-        case 'yesterday':
-          startDate = new Date(currentDate.setDate(currentDate.getDate() - 1));
-          startDate.setHours(0, 0, 0, 0);
-          break;
-        case 'last7days':
-          startDate = new Date(currentDate.setDate(currentDate.getDate() - 7));
-          break;
-        default:
-          startDate = new Date(0);  // Default to no filter
-          break;
+        const minTotal = Math.floor(totalOnline / 60000);
+        summary.innerHTML += `<p><b>${number}</b>: ${sessionCount} sessions, total ${minTotal} min</p>`;
       }
-
-      // Re-fetch data based on filter
-      const qFiltered = query(
-        collection(db, "whatsapp_log"),
-        orderBy("timestamp", "desc")
-        // Add conditions here for filtering by startDate
-      );
-    };
-
-    // Handle filter change
-    filterSelect.addEventListener('change', (event) => {
-      filterLogs(event.target.value);
     });
-
   </script>
-
-  <!-- Modal for session details -->
   <style>
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); }
-    .modal-content { background-color: #fff; margin: 15% auto; padding: 20px; width: 60%; }
-    .log-entry { background: #f4f4f9; border-radius: 8px; padding: 10px; margin-bottom: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-    .view-session-btn { background-color: #5c6bc0; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; }
-    .view-session-btn:hover { background-color: #3f51b5; }
-    .filter { margin: 20px 0; }
+    body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; color: #333; }
+    h2 { color: #4a90e2; }
+    .log-entry { background: #fff; margin-bottom: 10px; padding: 15px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    #timeline { margin-top: 20px; }
+    #downloadBtn { padding: 8px 16px; background: #4a90e2; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
   </style>
-
 </head>
-<body style="font-family:sans-serif; background-color: #e8f5e9; padding:20px;">
-
-  <h2 style="font-size: 2em; color: #3b3b3b;">📱 WhatsApp Last Seen Tracker</h2>
-  
-  <!-- Filter Section -->
-  <div class="filter">
-    <label for="filterSelect">Filter logs by:</label>
-    <select id="filterSelect">
-      <option value="today">Today</option>
-      <option value="yesterday">Yesterday</option>
-      <option value="last7days">Last 7 Days</option>
-    </select>
-  </div>
-
-  <!-- Logs Section -->
-  <div id="logs">Loading data...</div>
-
-  <!-- Session Details Modal -->
-  <div id="sessionDetailsModal" class="modal">
-    <div class="modal-content">
-      <h3>Session Details</h3>
-      <div id="sessionDetailsContent"></div>
-      <button onclick="closeModal()">Close</button>
-    </div>
-  </div>
-
-  <script>
-    // Make sure the modal closes when clicked outside of it
-    window.onclick = (event) => {
-      if (event.target == sessionDetailsModal) {
-        closeModal();
-      }
-    };
-  </script>
-
+<body>
+  <h2>📱 WhatsApp Last Seen Tracker</h2>
+  <div id="summary"></div>
+  <button id="downloadBtn">⬇️ Export Logs as CSV</button>
+  <div id="logs">Loading...</div>
+  <div id="timeline"></div>
 </body>
 </html>
