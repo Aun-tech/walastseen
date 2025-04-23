@@ -1,88 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>WaLastSeen - Login</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f6f8fa;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .login-box {
-      background: #fff;
-      padding: 40px;
-      border-radius: 10px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-    h2 {
-      margin-bottom: 20px;
-      text-align: center;
-    }
-    input[type="email"], input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-    }
-    button {
-      width: 100%;
-      padding: 10px;
-      background-color: #0275d8;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
-    button:hover {
-      background-color: #025aa5;
-    }
-  </style>
-  
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Last Seen Tracker</title>
+
+    <!-- Add Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.8.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.8.1/firebase-firestore.js"></script>
+
 </head>
 <body>
-  <div class="login-box">
-    <h2>Login to WaLastSeen</h2>
-    <input type="email" id="email" placeholder="Email" required />
-    <input type="password" id="password" placeholder="Password" required />
-    <button onclick="login()">Login</button>
-  </div>
+    <h1>WhatsApp Last Seen Tracker</h1>
+    
+    <div id="logs-container">
+        <!-- Logs will be displayed here -->
+    </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+    <script>
+        // Firebase config from your Firebase Console (found under Project Settings)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID"
+        };
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
-      authDomain: "walastseen.firebaseapp.com",
-      projectId: "walastseen",
-      storageBucket: "walastseen.appspot.com",
-      messagingSenderId: "80496023280",
-      appId: "1:80496023280:web:3bea7627c6dcfcece59435"
-    };
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+        // Fetch and display data
+        async function fetchLogs() {
+            const logsRef = db.collection("whatsapp_log");
+            const snapshot = await logsRef.orderBy("timestamp", "desc").limit(10).get();
 
-    window.login = function() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+            let logsHtml = '';
+            snapshot.forEach(doc => {
+                const log = doc.data();
+                logsHtml += `
+                    <div>
+                        <strong>Number:</strong> ${log.number} <br>
+                        <strong>Status:</strong> ${log.status} <br>
+                        <strong>Timestamp:</strong> ${log.timestamp} <br>
+                        <hr>
+                    </div>
+                `;
+            });
 
-      signInWithEmailAndPassword(auth, email, password)
-        .then(() => {
-          window.location.href = "dashboard.html"; // Make sure this file name matches exactly
-        })
-        .catch(error => {
-          alert("Login failed: " + error.message);
-        });
-    };
-  </script>
+            document.getElementById('logs-container').innerHTML = logsHtml;
+        }
+
+        // Call the function to fetch logs on page load
+        window.onload = fetchLogs;
+    </script>
 </body>
 </html>
