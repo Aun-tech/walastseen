@@ -17,13 +17,13 @@
     } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID",
-      measurementId: "YOUR_MEASUREMENT_ID"
+      apiKey: "AIzaSyB_8jnP9Yq5LhYnqFMwJ1G1dUjRqimJklk",
+      authDomain: "walastseen.firebaseapp.com",
+      projectId: "walastseen",
+      storageBucket: "walastseen.appspot.com",
+      messagingSenderId: "80496023280",
+      appId: "1:80496023280:web:3bea7627c6dcfcece59435",
+      measurementId: "G-KMMGEHY5GJ"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -34,7 +34,6 @@
     const q = query(collection(db, "whatsapp_log"), orderBy("timestamp", "desc"));
 
     const notificationSound = new Audio("https://notificationsounds.com/storage/sounds/file-sounds-1162-pristine.mp3");
-
     let latestDocId = null;
 
     onSnapshot(q, (snapshot) => {
@@ -160,4 +159,3 @@
   </div>
 </body>
 </html>
-
